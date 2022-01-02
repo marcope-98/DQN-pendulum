@@ -23,9 +23,22 @@ def get_critic(nx, nu):
     )
     return model
 
+def update(xu_batch, cost_batch, xu_next_batch):
+    ''' Update the weights of the Q network using the specified batch of data '''
+    target_values = Q_target(xu_next_batch)
+    y = cost_batch + DISCOUNT*target_values
+    Q_value = Q(xu_batch)
+    loss = nn.MSELoss()                     # operand 
+    Q_loss = loss(y, Q_value)               # actual loss
+    
+    critic_optimizer.zero_grad()
+    Q_loss.backward()
+    critic_optimizer.step()
+
 
 if __name__ == "__main__":
     QVALUE_LEARNING_RATE = 1e-3
+    DISCOUNT = 1e-3
     nx = 3
     nu = 2
     
@@ -40,6 +53,7 @@ if __name__ == "__main__":
 
     # make sure that both neural network have the same bias and weights before training 
     Q.load_state_dict(Q_target.state_dict())
-    # I did not really think about this but probablly this should be inserted inside the training loop
+
+    # I did not really think about this but probably this should be inserted inside the training loop
     critic_optimizer = torch.optim.Adam(Q.parameters(),lr=QVALUE_LEARNING_RATE)
     
