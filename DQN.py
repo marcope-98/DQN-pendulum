@@ -1,6 +1,4 @@
-from os import XATTR_CREATE
 import torch
-from torch._C import ListType
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
