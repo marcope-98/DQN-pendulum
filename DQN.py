@@ -34,11 +34,14 @@ class ReplayBuffer:
         self.mem_counter = 0
 
     def update(self, st, at, rt, stp1):
-        index = self.mem_counter % self.mem_size
+        index = self.mem_counter % self.mem_size         # get index: this will wrap around and overwrite the start of the np.array once it reaches the end
+        # insert values into memory
         self.st[index] = st
         self.at[index] = at
         self.rt[index] = rt
         self.stp1[index] = stp1
+
+        self.mem_counter += 1                           # increment counter
 
 
 
