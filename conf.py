@@ -5,4 +5,6 @@ MAX_EPISODE_LENGTH  = 100
 INITIAL_EXPLORATION = 1     # initialize the exploration probability to 1
 EXPLORATION_DECAY   = 0.001 # exploration decay for exponential decreasing
 FINAL_EXPLORATION   = 0.001 # minimum of exploration proba
-MINIBATCH_SIZE = 32
+MINIBATCH_SIZE      = 32
+GAMMA               = 0.99 
+NETWORK_RESET       = 4
