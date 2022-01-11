@@ -1,28 +1,29 @@
 from pendulum import Pendulum
 import torch
+from torch import functional as F
 import numpy as np
 from numpy import pi
 from numpy.random import randint, uniform
+from DQN import DQN, ReplayMemory
 import time
 
-nn_opt = {
-    "minibatch-size"                    : 32,
-    "replay-memory-size"                : 1_000_000,
-    "agent-history-length"              : 4,
-    "target-network-update-frequency"   : 10_000,
-    "discount-factor"                   : 0.99,
-    "action-repeat"                     : 4,
-    "update-frequency"                  : 4,
-    "learning-rate"                     : 0.00025,
-    "gradient-momentum"                 : 0.95,
-    "squared-gradient-momentum"         : 0.95,
-    "min-squared-gradient"              : 0.01,
-    "initial-exploration"               : 1,
-    "final-exploration"                 : 0.1,
-    "final-exploration-frame"           : 1_000_000,
-    "replay-start-size"                 : 50_000,
-    "noop-max"                          : 30
-}
+MINIBATCH_SIZE = 32
+REPLAY_MEMORY_SIZE = 1_000_000                  # N in the algorithm pseudocode
+AGENT_HISTORY_LENGTH = 4
+TARGET_NETWORK_UPDATE_FREQUENCY = 10_000
+GAMMA = 0.99                                    # discount factor
+ACTION_REPEAT = 4
+UPDATE_FREQUENCY = 4
+LEARNING_RATE = 0.00025
+GRADIENT_MOMENTUM = 0.95
+SQUARED_GRADIENT_MOMENTUM = 0.95
+MIN_SQUARED_GRADIENT = 0.01
+INITIAL_EXPLORATION = 1.
+FINAL_EXPLORATION = 0.1
+FINAL_EXPLORATION_FRAME = 1_000_000
+REPLAY_START_SIZE = 50_000
+NOOP_MAX = 30
+
 
 
 
@@ -33,28 +34,40 @@ class CDPendulum:
     '''
 
     # Constructor
-    def __init__(self, nu=11, uMax=5, dt=5e-2, ndt=1, noise_stddev=0, nn_opt={}):
+    def __init__(self, nu=11, uMax=5, dt=5e-2, ndt=1, noise_stddev=0):
         # model variables
+        
         self.pendulum = Pendulum(1, noise_stddev)
         self.pendulum.DT = dt                       # time step lenght
         self.pendulum.NDT = ndt                     # number of euler steps per integration
+        
         self.nu = nu                                # number of discretization steps for joint torque
         self.umax = uMax                            # max torque
         self.DU = 2*uMax/nu                         # discretization resolution for joint torque
-
-        # DQN variables
-        self.opt = nn_opt
-        
         # NNs
-        self.Q = ... # for weights 
-        self.Q_target = ... # for fixed target
+            # I imagine that the inputs are both number of actions and number of states
+            # and the output is the number of actions
+        self.Q = DQN(LEARNING_RATE,   self.pendulum.nx + self.nu, self.nu) # for weights 
+        self.Q_target = DQN(LEARNING_RATE, self.pendulum.nx + self.nu, self.nu) # for fixed target
 
+    # RL
+    def update_Q_target(self):
+        self.Q_target.load_state_dict(self.Q.state_dict())
         
-
-
-
+    def train_step(self, state_transitions):
+        current_states = torch.stack([s.state       for s in state_transitions])
+        rewards =        torch.stack([s.reward      for s in state_transitions])
+        actions =        torch.stack([s.action      for s in state_transitions])
+        next_states =    torch.stack([s.next_state  for s in state_transitions])
+        mask =           torch.stack([0 if s.done else 1 for s in state_transitions])
         
-    
+        # compute loss
+        with torch.no_grad():
+            qvals_next = self.Q_target(next_states).max(-1)
+
+
+
+    # Dynamics
     # Continuous to discrete (prolly never gonna use this but whatever)
     def c2du(self, u):
         u = np.clip(u,-self.uMax+1e-3,self.uMax-1e-3)
@@ -77,11 +90,6 @@ class CDPendulum:
 
         return action
 
-
-
-
-
-
     # methods for simulation
     def step(self,iu):
         cost = self.dynamics(self.x, iu)
@@ -95,3 +103,5 @@ class CDPendulum:
         _, cost = self.pendulum.dynamics(x, u)
         return cost
         
+
+
