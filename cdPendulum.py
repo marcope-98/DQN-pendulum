@@ -1,4 +1,5 @@
 # User files
+from random import paretovariate
 from pendulum import Pendulum
 import conf as conf
 # pytorch
@@ -11,7 +12,7 @@ import time
 
 class CDPendulum():
     # Constructor
-    def __init__(self, nu=11, uMax=5, dt=5e-2, ndt=1, noise_stddev=0):
+    def __init__(self,  nu=11, uMax=5, dt=5e-2, ndt=1, noise_stddev=0):
         self.pendulum = Pendulum(1, noise_stddev)
         self.pendulum.DT = dt                       # time step lenght
         self.pendulum.NDT = ndt                     # number of euler steps per integration
@@ -20,9 +21,8 @@ class CDPendulum():
         self.nu = nu                                # number of discretization steps for joint torque
         self.uMax = uMax                            # max torque
         self.DU = 2*uMax/nu                         # discretization resolution for joint torque
+        self.nv = self.pendulum.nv
 
-        self.actions = np.array([np.arange(0,self.nu)]).T
-        
     # Dynamics
     # Continuous to discrete (prolly never gonna use this but whatever)
     def c2du(self, u):
@@ -45,8 +45,28 @@ class CDPendulum():
 
     def dynamics(self, x, iu):
         u = self.d2cu(iu)
-        _, cost = self.pendulum.dynamics(x, u)
+        _, cost = self.pendulum.dynamics(x, u, display=False) 
         return cost
+
+    def decode_action(self, a):
+        res = []
+        rem = a
+        for i in np.arange(0, self.nv - 1):
+            res.insert(0, int(rem / self.nu**(self.nv - i - 1))) # append at the beginning
+            rem = (rem % self.nu**(self.nv - i - 1))
+        res.insert(0, rem)
+        return res
+
+    def encode_action(self, a):
+        res = 0
+        for i in np.arange(0, self.nv):
+            res += a[i] * self.nu**i
+
+        return res
+            
         
 if __name__ == '__main__':
+    test = CDPendulum()
+    a = test.decode_action(120)
+    a = test.encode_action(a)
     pass

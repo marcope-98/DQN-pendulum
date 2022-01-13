@@ -120,9 +120,10 @@ class Pendulum:
         ''' Reset the state of the environment to x0 '''
         if x0 is None: 
             q0 = np.pi*(np.random.rand(self.nq)*2-1)
+            
             v0 = np.random.rand(self.nv)*2-1
             x0 = np.vstack([q0,v0])
-        assert len(x0)==self.nx
+        assert np.size(x0)==self.nx
         self.x = x0.copy()
         self.r = 0.0
         return self.obs(self.x)
@@ -157,8 +158,8 @@ class Pendulum:
         sumsq    = lambda x : np.sum(np.square(x))
 
         cost = 0.0
-        q = modulePi(x[:self.nq])
-        v = x[self.nq:]
+        q = modulePi(x[0])
+        v = x[1]
         u = np.clip(np.reshape(np.array(u),self.nu),-self.umax,self.umax)
 
         DT = self.DT/self.NDT
@@ -166,7 +167,7 @@ class Pendulum:
             pin.computeAllTerms(self.model,self.data,q,v)
             M   = self.data.M
             b   = self.data.nle
-            a   = inv(M)*(u-self.Kf*v-b)
+            a   = (inv(M)@(u-self.Kf*v-b))
             a   = a.reshape(self.nv) + np.random.randn(self.nv)*self.noise_stddev
             self.a = a
 
@@ -178,12 +179,23 @@ class Pendulum:
                 self.display(q)
                 time.sleep(1e-4)
 
-        x[:self.nq] = modulePi(q)
-        x[self.nq:] = np.clip(v,-self.vmax,self.vmax)
+        x[0] = modulePi(q)
+        x[1] = np.clip(v,-self.vmax,self.vmax)
         
         return x,-cost
      
     def render(self):
-        q = self.x[:self.nq]
+        q = self.x[0]
         self.display(q)
         time.sleep(self.DT/10)
+
+
+if __name__ == "__main__":
+    a = Pendulum()
+    a.reset(x0=np.array([[3.14],[0.0]]))
+    a.render()
+    _, cost = a.step([0.0])
+    #(sumsq(q) + 1e-1*sumsq(v) + 1e-3*sumsq(u))*DT
+    sumsq    = lambda x : np.sum(np.square(x))
+    print((sumsq(np.pi) + 1e-1 * sumsq(8.0) + 1e-3*sumsq(2.0))*5e-2)
+    #(q^2) + 0.1

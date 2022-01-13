@@ -37,12 +37,13 @@ class ReplayMemory(object):
 # ----------------------- Neural Network------------------------
 
 class Network(nn.Module):
-    def __init__(self, input_size, output_size):
+    def __init__(self, nx, nu):
         super(Network, self).__init__() # calls to constructor of base class
         # general attributes
-        self.i_dim = input_size         # input dim
+        self.i_dim = nx              # input dim states and action(s)
         self.h_dim = [16,32,64,64]      # hidden layer dims
-        self.o_dim = output_size        # output dim (aka number of actions)
+        #self.h_dim = [32,64, 128, 128]
+        self.o_dim = nu                  # output dim (aka Q(s, a)) but i believe it should output a Q function for each 
 
         self.network = nn.Sequential(
             nn.Linear(self.i_dim, self.h_dim[0]),
@@ -55,7 +56,7 @@ class Network(nn.Module):
             nn.ReLU(),
             nn.Linear(self.h_dim[3], self.o_dim)
         )
-        
+
         self.optimizer = optim.Adam(self.parameters(), lr=conf.LEARNING_RATE)
         
 

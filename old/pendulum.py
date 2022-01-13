@@ -114,8 +114,8 @@ class Pendulum:
 #    def nobs(self): return self.nx+self.withSinCos
     ''' Size of the u vector '''
     @property
-    def nu(self): return self.nv
-
+    def nu(self): return self.nv             
+    
     def reset(self, x0=None):
         ''' Reset the state of the environment to x0 '''
         if x0 is None: 
