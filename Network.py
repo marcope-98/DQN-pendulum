@@ -17,14 +17,13 @@ import random
 Transition = namedtuple('Transition',
                         ('state', 'action', 'reward', 'next_state', 'done'))
 
-
 class ReplayMemory(object):
 
     def __init__(self, capacity):
         self.memory = deque([],maxlen=capacity)
 
     def push(self, *args):
-        """Save a transition"""
+        #Save a transition
         self.memory.append(Transition(*args))
 
     def sample(self, batch_size):
@@ -32,7 +31,6 @@ class ReplayMemory(object):
 
     def __len__(self):
         return len(self.memory)
-
 
 # ----------------------- Neural Network------------------------
 
@@ -57,7 +55,7 @@ class Network(nn.Module):
             nn.Linear(self.h_dim[3], self.o_dim)
         )
 
-        self.optimizer = optim.Adam(self.parameters(), lr=conf.LEARNING_RATE)
+        #self.optimizer = optim.Adam(self.parameters(), lr=conf.LEARNING_RATE)
         
 
     # forward propagation
@@ -68,3 +66,6 @@ class Network(nn.Module):
     def copy(self, other):
         self.load_state_dict(other.state_dict())
 
+
+if __name__ == "__main__":
+    a = ReplayMemory(10)

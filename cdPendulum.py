@@ -12,7 +12,8 @@ import time
 
 class CDPendulum():
     # Constructor
-    def __init__(self,  nu=11, uMax=5, dt=5e-2, ndt=1, noise_stddev=0):
+    '''dt = 0.2'''
+    def __init__(self,  nu=11, uMax=5, dt=5e-2, ndt=1, noise_stddev=0):  # dt = 0.05 should imply 20 fps
         self.pendulum = Pendulum(1, noise_stddev)
         self.pendulum.DT = dt                       # time step lenght
         self.pendulum.NDT = ndt                     # number of euler steps per integration
@@ -22,6 +23,7 @@ class CDPendulum():
         self.uMax = uMax                            # max torque
         self.DU = 2*uMax/nu                         # discretization resolution for joint torque
         self.nv = self.pendulum.nv
+        self.action_space = np.linspace(0, self.nu)
 
     # Dynamics
     # Continuous to discrete (prolly never gonna use this but whatever)
@@ -36,9 +38,14 @@ class CDPendulum():
 
 
     # methods for simulation
+
+    def reset(self, x=None):
+        return self.pendulum.reset(x)
+        
     def step(self,iu):
-        cost = self.dynamics(self.pendulum.x, iu)
-        return self.pendulum.obs(self.pendulum.x), cost
+        u = self.d2cu(iu)
+        self.x , cost = self.pendulum.step(u)
+        return self.x, cost
 
     def render(self):
         self.pendulum.render() # prolly just leave it as default given that state is continuous
