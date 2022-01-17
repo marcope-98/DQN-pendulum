@@ -60,20 +60,8 @@ class CDPendulum():
         for i in np.arange(0, self.nv -1):
             res.insert(0, zero)
         res.insert(0,a)
-        """
-        res = []
-        rem = a
-        for i in np.arange(0, self.nv - 1):
-            res.insert(0, int(rem / self.nu**(self.nv - i - 1))) # append at the beginning
-            rem = (rem % self.nu**(self.nv - i - 1))
-        res.insert(0, rem)
-        return a 
-        """
         return res
 
-    def encode_action(self, a):
-
-        return a[0]
             
         
 if __name__ == '__main__':

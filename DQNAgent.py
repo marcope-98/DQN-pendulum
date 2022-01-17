@@ -143,8 +143,7 @@ class DQNAgent():
 if __name__ == "__main__":
     agent = DQNAgent()
 
-    model_alt = CDPendulum()
-    Q_function_alt = Network(6, model_alt.nu)
+    Q_function_alt = Network(agent.ns, agent.model.nu)
     try: 
         step = 0
         while True:
@@ -157,7 +156,6 @@ if __name__ == "__main__":
                 
                 a, a_int = agent.choose_action(s)
                 s_next, r = agent.step(a)
-                is_terminated = agent.failed(s, s_next)
                 ctg += gamma * r
                 gamma *= conf.GAMMA
                 #done = 0 if (t == conf.MAX_EPISODE_LENGTH - 1) else 1
@@ -171,9 +169,7 @@ if __name__ == "__main__":
 
                 if (step % conf.NETWORK_RESET == 0):
                     agent.target_update()
-                if (is_terminated):
-                    break
-            
+                
             if ctg > agent.best_ctg:
                 agent.save_model(ctg)
             agent.epsilon_decay()
@@ -183,14 +179,14 @@ if __name__ == "__main__":
                 #print(agent.episode)
                 Q_function_alt.load_state_dict(torch.load(agent.filename))
 
-                s = model_alt.reset(x=np.array([[np.pi+0.1, 0.],[0.,0.]])).reshape(6)
+                s = agent.model.reset(x=np.array([[np.pi+0.1, 0.],[0.,0.]])).reshape(6)
 
                 for _ in np.arange(conf.MAX_EPISODE_LENGTH):
-                    model_alt.render()
+                    agent.model.render()
                     with torch.no_grad(): # needed for inference
                         a_encoded = int(torch.argmin(Q_function_alt(torch.Tensor(s))))
-                    a = model_alt.decode_action(a_encoded)
-                    s_next, _ = model_alt.step(a)
+                    a = agent.model.decode_action(a_encoded)
+                    s_next, _ = agent.model.step(a)
                     s = s_next.reshape(6)
                     time.sleep(0.03)
     except KeyboardInterrupt:
