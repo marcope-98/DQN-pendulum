@@ -40,7 +40,7 @@ class Network(nn.Module):
         # general attributes
         self.i_dim = nx              # input dim states and action(s)
         self.h_dim = [16,32,64,64]      # hidden layer dims
-        #self.h_dim = [32,64, 128, 128]
+        #self.h_dim = [32,64,128,128]
         self.o_dim = nu                  # output dim (aka Q(s, a)) but i believe it should output a Q function for each 
 
         self.network = nn.Sequential(

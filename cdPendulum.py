@@ -1,6 +1,5 @@
 # User files
-from random import paretovariate
-from pendulum import Pendulum
+from pendulum_2 import Pendulum
 import conf as conf
 # pytorch
 import torch
@@ -12,18 +11,18 @@ import time
 
 class CDPendulum():
     # Constructor
-    '''dt = 0.2'''
-    def __init__(self,  nu=11, uMax=5, dt=5e-2, ndt=1, noise_stddev=0):  # dt = 0.05 should imply 20 fps
-        self.pendulum = Pendulum(1, noise_stddev)
+    '''dt = 0.2 ndt = 1'''
+    def __init__(self,  nu=11, uMax=5.0, dt=0.1, ndt=1, noise_stddev=0):  # dt = 0.05 should imply 20 fps
+        self.pendulum = Pendulum(2,noise_stddev)
         self.pendulum.DT = dt                       # time step lenght
         self.pendulum.NDT = ndt                     # number of euler steps per integration
+        self.pendulum.umax = uMax
         self.dt = dt                                # time step
         self.nx = self.pendulum.nx                  # state dim
         self.nu = nu                                # number of discretization steps for joint torque
         self.uMax = uMax                            # max torque
         self.DU = 2*uMax/nu                         # discretization resolution for joint torque
         self.nv = self.pendulum.nv
-        self.action_space = np.linspace(0, self.nu)
 
     # Dynamics
     # Continuous to discrete (prolly never gonna use this but whatever)
@@ -57,23 +56,35 @@ class CDPendulum():
 
     def decode_action(self, a):
         res = []
+        zero = self.c2du(0)
+        for i in np.arange(0, self.nv -1):
+            res.insert(0, zero)
+        res.insert(0,a)
+        """
+        res = []
         rem = a
         for i in np.arange(0, self.nv - 1):
             res.insert(0, int(rem / self.nu**(self.nv - i - 1))) # append at the beginning
             rem = (rem % self.nu**(self.nv - i - 1))
         res.insert(0, rem)
+        return a 
+        """
         return res
 
     def encode_action(self, a):
-        res = 0
-        for i in np.arange(0, self.nv):
-            res += a[i] * self.nu**i
 
-        return res
+        return a[0]
             
         
 if __name__ == '__main__':
     test = CDPendulum()
-    a = test.decode_action(120)
-    a = test.encode_action(a)
-    pass
+    test.reset(x= np.array([[np.pi,0.],[0.,0.]]))
+    for i in np.arange(200):
+        test.render()
+        time.sleep(0.05)
+        test.step(np.array([0, 5]))
+
+    
+
+
+    
