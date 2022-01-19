@@ -1,7 +1,7 @@
 # User Files
-from Network import Network, ReplayMemory
-from cdPendulum import CDPendulum
-import conf as conf
+from env import Network, ReplayMemory
+from env import CDPendulum
+from env import conf
 # numpy
 import numpy as np
 from numpy.random import randint, uniform
@@ -9,14 +9,14 @@ from numpy.random import randint, uniform
 import torch
 import torch.optim as optim
 import torch.nn.functional as F
-# csv
+# others
 import csv
 import time
 
 class DQNAgent():
     def __init__(self):
         self.buffer = ReplayMemory(conf.REPLAY_MEMORY_SIZE)
-        self.model = CDPendulum(nu=conf.NU, uMax=conf.UMAX, dt=conf.DT, ndt=conf.NDT, noise_stddev=conf.NOISE)
+        self.model = CDPendulum(nbJoint=conf.N_JOINTS,nu=conf.NU, uMax=conf.UMAX, dt=conf.DT, ndt=conf.NDT, noise_stddev=conf.NOISE, withSinCos=conf.WITHSinCos)
         self.ns = self.model.nx + self.model.nv if (self.model.pendulum.withSinCos) else self.model.nx
 
         self.Q_function = Network(self.ns, self.model.nu)
@@ -33,7 +33,7 @@ class DQNAgent():
         self.episode = -1
 
         self.epsilon = conf.INITIAL_EXPLORATION
-        self.filename = ""
+        self.filename = None
         self.Q_gepetto_gui = Network(self.ns, self.model.nu)
         self.display_model = CDPendulum(nu=conf.NU, uMax=conf.UMAX, dt=conf.DT, ndt=conf.NDT, noise_stddev=conf.NOISE)
         
@@ -70,8 +70,7 @@ class DQNAgent():
         t_states      = torch.stack([torch.Tensor(m.state) for m in minibatch])          
         t_actions     = torch.LongTensor([m.action for m in minibatch] )        
         t_rewards     = torch.Tensor([-m.reward for m in minibatch])       
-        t_next_states = torch.stack([torch.Tensor(m.next_state) for m in minibatch])     
-        t_dones       = torch.Tensor([m.done for m in minibatch])
+        t_next_states = torch.stack([torch.Tensor(m.next_state) for m in minibatch])
 
         with torch.no_grad():
             q_target_values = self.Q_target(t_next_states).min(-1)[0] 
@@ -81,7 +80,7 @@ class DQNAgent():
         q_selector = F.one_hot(t_actions, self.model.nu)
         
         
-        loss = ( ( t_rewards - torch.sum(q_selector * q_values, -1) + conf.GAMMA*t_dones*(q_target_values) )**2 ).mean()
+        loss = ( ( t_rewards - torch.sum(q_selector * q_values, -1) + conf.GAMMA*(q_target_values) )**2 ).mean()
         loss.backward()
         self.optimizer.step()
 
@@ -114,7 +113,7 @@ class DQNAgent():
             temp_s = s_next_simu.reshape(self.ns)
 
     def save_model(self, ctg):
-        self.filename = "model/model_" + str(self.episode) + ".pth"
+        self.filename = "results/model/model_" + str(self.episode) + ".pth"
         if ctg > self.best_ctg:
             self.eps.append(self.episode)
             self.ctgs.append(ctg)
@@ -124,18 +123,18 @@ class DQNAgent():
 
     def save_csv(self):
         # stores all cost to go improvements and the episode at which they happened in the same csv file
-        with open('cost_to_go.csv', 'w', newline='') as csvfile:
+        with open('results/csv/cost_to_go.csv', 'w', newline='') as csvfile:
             file = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
             for i in np.arange(0, len(self.eps)):
                 file.writerow([self.eps[i], self.ctgs[i]])
 
         # stores epsilon decay and loss in the same csv file
-        with open('loss.csv', 'w', newline='') as csvfile:
+        with open('results/csv/loss.csv', 'w', newline='') as csvfile:
             file = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
             for i in self.running_loss:
                 file.writerow([i])
 
-        with open('decay.csv', 'w', newline='') as csvfile:
+        with open('results/csv/decay.csv', 'w', newline='') as csvfile:
             file = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
             for i in self.decay:
                 file.writerow([i])
@@ -158,9 +157,7 @@ if __name__ == "__main__":
                 s_next, r = agent.step(a)
                 ctg += gamma * r
                 gamma *= conf.GAMMA
-                #done = 0 if (t == conf.MAX_EPISODE_LENGTH - 1) else 1
-                done = 1
-                agent.buffer.push(s, a_int, r, s_next, done)
+                agent.buffer.push(s, a_int, r, s_next)
                 s = s_next
                 
                 if len(agent.buffer) >= conf.REPLAY_START_SIZE and step % conf.REPLAY_SAMPLE_STEP:
@@ -172,22 +169,25 @@ if __name__ == "__main__":
                 
             if ctg > agent.best_ctg:
                 agent.save_model(ctg)
+            
             agent.epsilon_decay()
+
             if agent.episode % 100 == 0:
                 print(agent.episode)
-            if agent.episode % conf.GEPETTO_GUI_VISUAL == 0:
+
+            if agent.episode % conf.GEPETTO_GUI_VISUAL == 0 and agent.filename is not None:
                 #print(agent.episode)
                 Q_function_alt.load_state_dict(torch.load(agent.filename))
 
-                s = agent.model.reset(x=np.array([[np.pi+0.1, 0.],[0.,0.]])).reshape(6)
-
+                s = agent.model.reset(x=np.array(conf.X_0)).reshape(agent.ns)
+                time.sleep(1)
                 for _ in np.arange(conf.MAX_EPISODE_LENGTH):
                     agent.model.render()
                     with torch.no_grad(): # needed for inference
                         a_encoded = int(torch.argmin(Q_function_alt(torch.Tensor(s))))
                     a = agent.model.decode_action(a_encoded)
                     s_next, _ = agent.model.step(a)
-                    s = s_next.reshape(6)
+                    s = s_next.reshape(agent.ns)
                     time.sleep(0.03)
     except KeyboardInterrupt:
         agent.save_csv()
