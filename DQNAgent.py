@@ -1,4 +1,5 @@
 # User Files
+from math import ceil
 from env.Network import Network, ReplayMemory, Transition
 from env import CDPendulum
 from env import conf
@@ -44,14 +45,14 @@ class DQNAgent():
         return torch.tensor(self.model.reset(x), dtype=torch.float32).view(1,self.ns)
 
     def step(self, a):
-        n_s, r = self.model.step(a)
-        return torch.tensor(n_s, dtype=torch.float32).view(1,self.ns), torch.tensor([r], dtype=torch.float32)
+        s, r = self.model.step(self.model.decode_action(a))
+        return torch.tensor(s, dtype=torch.float32).view(1,self.ns), torch.tensor([r], dtype=torch.float32)
 
     def failed(self, state, next_state):
-        threashold = np.sin(5.0*np.pi/180.0) # threashold of 5.0 degrees
+        threshold = np.sin(5.0*np.pi/180.0) # threshold of 5.0 degrees
         sin_1 = np.abs(state[1]) + np.abs(state[4])
         sin_2 = np.abs(next_state[1]) + np.abs(next_state[4])
-        if sin_1 < threashold and sin_2 > threashold:
+        if sin_1 < threshold and sin_2 > threshold:
             return True
         return False
 
@@ -96,36 +97,31 @@ class DQNAgent():
     # epsilon-greedy
     def choose_action(self, state):
         if random.random() < self.epsilon:
-            a_int = torch.tensor([[random.randrange(self.model.nu)]], dtype=torch.long)
+            a = torch.tensor([[random.randrange(self.model.nu)]], dtype=torch.long)
         else:
             with torch.no_grad():
-                a_int = self.Q_function(state).max(-1)[1].view(1,1)
+                a = self.Q_function(state).max(-1)[1].view(1,1)
 
-        a = self.model.decode_action(a_int.item())
-
-        return a, a_int  # a is an array, a_int is an integer (returned as singleton tensor)
+        return a # singleton tensor of encoded action
 
     def display(self):
-        print(self.episode)
-        self.Q_gepetto_gui.load_state_dict(torch.load(self.filename))
-        temp_s = self.display_model.reset(np.array([[np.pi + 1e-3, 0.],[0., 0.]])).reshape(self.ns)
-        
-        self.display_model.render()
-        time.sleep(0.5)
-        for _ in np.arange(0, conf.MAX_EPISODE_LENGTH):
-            with torch.no_grad():
-                a_simu = int(torch.argmax(self.Q_gepetto_gui(torch.Tensor(temp_s))))
-            a_simu = self.display_model.decode_action(a_simu)
-            s_next_simu, _ = self.display_model.step(a_simu)
-            temp_s = s_next_simu.reshape(self.ns)
+        print("Displaying progress")
+        s = agent.reset(conf.X_0)
+        agent.model.render()
+        time.sleep(1)
+        for _ in np.arange(conf.MAX_EPISODE_LENGTH):
+            agent.model.render()
+            a = self.Q_target(s).max(-1)[1].view(1,1)
+            s_next, _ = agent.step(a.item())
+            s = s_next
+            time.sleep(conf.DT)
 
     def save_model(self, ctg):
-        self.filename = "results/model/model_" + str(self.episode) + ".pth"
-        if ctg > self.best_ctg:
-            self.eps.append(self.episode)
-            self.ctgs.append(ctg)
-            self.best_ctg = ctg
-            print(self.episode, ctg)
+        quant_ctg = ceil(ctg * 1000)
+        self.filename = "results/model/model_" + str(quant_ctg) + "_" + str(self.episode) + ".pth"
+        self.eps.append(self.episode)
+        self.ctgs.append(ctg)
+        print("Saving model episode:", self.episode, "cost-to-go:", ctg)
         torch.save(self.Q_function.state_dict(), self.filename)
 
     def save_csv(self):
@@ -145,56 +141,67 @@ class DQNAgent():
             file = csv.writer(csvfile, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL)
             for i in self.decay:
                 file.writerow([i])
+    
+    def track_improvement(self):
+        ctg = 0.
+        gamma = 1.
+        s = self.reset(conf.X_0)
+        for t in np.arange(0, conf.MAX_EPISODE_LENGTH):
+            a = self.Q_target(s).max(-1)[1].view(1,1)
+            s_next, r = agent.step(a.item())
+            ctg += gamma * r
+            gamma *= conf.GAMMA
+            agent.buffer.push(s, a, r, s_next)
+            s = s_next
+        if ctg > self.best_ctg:
+            self.best_ctg = ctg
+            self.save_model(-ctg.item())
+        return -ctg.item()
+        
 
 if __name__ == "__main__":
+    # Create agent
     agent = DQNAgent()
-
-    Q_function_alt = Network(agent.ns, agent.model.nu)
     try: 
         step = 0
+        #Training loop
         while True:
-            ctg = 0.
-            gamma = 1.
             agent.episode += 1
+            episode_loss = []
+            # Reset pendulum and get initial state
             s = agent.reset()
+            # Episode loop
             for t in np.arange(0, conf.MAX_EPISODE_LENGTH):
                 step += 1
-
-                a, a_int = agent.choose_action(s)
-                s_next, r = agent.step(a)
-                ctg += gamma * r
-                gamma *= conf.GAMMA
-                agent.buffer.push(s, a_int, r, s_next)
+                # Choose action with epsilon-greedy policy, then update state and save transition in replay buffer
+                a = agent.choose_action(s)
+                s_next, r = agent.step(a.item())
+                agent.buffer.push(s, a, r, s_next)
                 s = s_next
-                
+
+                # Run model optimization step and track training loss
                 if len(agent.buffer) >= conf.REPLAY_START_SIZE and step % conf.REPLAY_SAMPLE_STEP:
                     l = agent.update()
-                    #agent.running_loss.append(l.detach().item())                
+                    episode_loss.append(l)                
 
+                # Update target network weights
                 if (step % conf.NETWORK_RESET == 0):
                     agent.target_update()
-                
-            if ctg > agent.best_ctg:
-                agent.save_model(ctg)
-            
+
+            # Re-evaluate epsilon value
             agent.epsilon_decay()
 
+            # Track average training loss
+            agent.running_loss.append(np.mean(episode_loss))
+
+            # Print track advancement
             if agent.episode % 100 == 0:
-                print(agent.episode)
+                print("Episode:", agent.episode)
+                ctg = agent.track_improvement()
 
-            if agent.episode % conf.GEPETTO_GUI_VISUAL == 0 and agent.filename is not None:
-                #print(agent.episode)
-                Q_function_alt.load_state_dict(torch.load(agent.filename))
+            # Display progress in 3D view
+            if agent.episode % conf.GEPETTO_GUI_VISUAL == 0:
+                agent.display()
 
-                s = agent.model.reset(x=np.array(conf.X_0)).reshape(agent.ns)
-                time.sleep(1)
-                for _ in np.arange(conf.MAX_EPISODE_LENGTH):
-                    agent.model.render()
-                    with torch.no_grad(): # needed for inference
-                        a_encoded = int(torch.argmax(Q_function_alt(torch.Tensor(s))))
-                    a = agent.model.decode_action(a_encoded)
-                    s_next, _ = agent.model.step(a)
-                    s = s_next.reshape(agent.ns)
-                    time.sleep(0.03)
     except KeyboardInterrupt:
         agent.save_csv()
