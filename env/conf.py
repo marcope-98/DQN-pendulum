@@ -49,7 +49,7 @@ else:
 
     ## EPSILON-GREEDY
     INITIAL_EXPLORATION     = 1.   
-    EXPLORATION_DECAY       = 0.001
+    EXPLORATION_DECAY       = 1000
     FINAL_EXPLORATION       = 0.001
 
     ## MODEL

@@ -22,10 +22,11 @@ class DQNAgent():
         self.ns = self.model.nx + self.model.nv if (self.model.pendulum.withSinCos) else self.model.nx
 
         self.Q_function = Network(self.ns, self.model.nu)
-        self.optimizer = optim.Adam(self.Q_function.parameters(), lr = conf.LEARNING_RATE)
         self.Q_target  = Network(self.ns, self.model.nu)
         self.Q_target.eval()
         self.Q_target.copy(self.Q_function)
+
+        self.optimizer = optim.Adam(self.Q_function.parameters(), lr = conf.LEARNING_RATE)
 
         self.eps          = [] # keeps track of the episode
         self.ctgs         = [] # keeps track of the cost-to-go
@@ -37,8 +38,6 @@ class DQNAgent():
 
         self.epsilon = conf.INITIAL_EXPLORATION
         self.filename = None
-        self.Q_gepetto_gui = Network(self.ns, self.model.nu)
-        self.display_model = CDPendulum(nu=conf.NU, uMax=conf.UMAX, dt=conf.DT, ndt=conf.NDT, noise_stddev=conf.NOISE)
         
     # reset environment, returns state as row vector
     def reset(self, x=None):
@@ -205,3 +204,5 @@ if __name__ == "__main__":
 
     except KeyboardInterrupt:
         agent.save_csv()
+        ctg = agent.track_improvement()
+        agent.save_model(ctg)
