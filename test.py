@@ -50,7 +50,7 @@ def plot_V_table(qmin, qmax, dqmin, dqmax, Q_function):
         for j in range(DQ.size):
             with torch.no_grad():
                 V[i,j] = Q_function(torch.tensor([Q[i], DQ[j]], dtype=torch.float32)).max(-1)[0].item()
-    plt.pcolormesh(Q, DQ, V, cmap=plt.cm.get_cmap('Blues'))
+    plt.pcolormesh(Q,DQ,V.T, cmap=plt.cm.get_cmap('Blues'))
     plt.colorbar()
     plt.title('V table')
     plt.xlabel("q")
@@ -67,7 +67,7 @@ def plot_policy_table(qmin, qmax, dqmin, dqmax, Q_function):
             with torch.no_grad():
                 a = Q_function(torch.tensor([Q[i], DQ[j]], dtype=torch.float32)).max(-1)[1].item()
                 U[i,j] = model.d2cu(a)
-    plt.pcolormesh(Q, DQ, U, cmap=plt.cm.get_cmap('Blues'))
+    plt.pcolormesh(Q,DQ,  U.T, cmap=plt.cm.get_cmap('Blues'))
     plt.colorbar()
     plt.title('Policy table')
     plt.xlabel("q")
