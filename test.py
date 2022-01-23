@@ -13,7 +13,7 @@ import math
 import csv
 import matplotlib.pyplot as plt
 
-FILENAME = "results/model/model_4968_9400.pth"
+FILENAME = "results/model/model_23553_11800.pth"
 
 model = CDPendulum(nbJoint=conf.N_JOINTS, 
                    nu=conf.NU, 
@@ -33,7 +33,7 @@ Q_function.load_state_dict(torch.load(FILENAME))
 s = model.reset(conf.X_0)
 model.render()
 time.sleep(1)
-for _ in np.arange(500):
+for _ in np.arange(20*conf.NDT/conf.DT): # Simulate for 20 seconds
     model.render()
     a_int = Q_function(torch.tensor(s, dtype=torch.float32).view(1,-1)).max(-1)[1].item()
     a = model.decode_action(a_int)
@@ -82,11 +82,15 @@ if conf.N_JOINTS == 1:
     plot_V_table(qmin, qmax, dqmin, dqmax, Q_function)
     plot_policy_table(qmin, qmax, dqmin, dqmax, Q_function)
 
-# with open('results/csv/decay.csv', newline='') as csvfile:
-#     reader = csv.reader(csvfile, delimiter=',', quotechar='|')
-#     t = []
-#     for row in reader:
-#         t.append(float(row[0]))
-
-# plt.plot(np.arange(0, len(t)), t)
-# plt.show()
+with open('results/csv/cost_to_go.csv', newline='') as csvfile:
+    reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+    ep = []
+    ctg = []
+    for row in reader:
+        ep.append(float(row[0]))
+        ctg.append(float(row[1]))
+plt.plot(ep, ctg)
+plt.title('Cost-to-go over episodes')
+plt.xlabel("Episode")
+plt.ylabel("Cost-to-go")
+plt.show()

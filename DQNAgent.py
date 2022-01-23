@@ -120,7 +120,6 @@ class DQNAgent():
         self.filename = "results/model/model_" + str(quant_ctg) + "_" + str(self.episode) + ".pth"
         self.eps.append(self.episode)
         self.ctgs.append(ctg)
-        print("Saving model episode:", self.episode, "cost-to-go:", ctg)
         torch.save(self.Q_function.state_dict(), self.filename)
 
     def save_csv(self):
@@ -154,7 +153,7 @@ class DQNAgent():
             s = s_next
         if ctg > self.best_ctg:
             self.best_ctg = ctg
-            self.save_model(-ctg.item())
+        self.save_model(-ctg.item())
         return -ctg.item()
         
 
@@ -206,3 +205,9 @@ if __name__ == "__main__":
         agent.save_csv()
         ctg = agent.track_improvement()
         agent.save_model(ctg)
+        import matplotlib.pyplot as plt
+        plt.plot(np.arange(0, len(agent.ctgs))*100, agent.ctgs)
+        plt.title('Cost-to-go over episodes')
+        plt.xlabel("Episode")
+        plt.ylabel("Cost-to-go")
+        plt.show()

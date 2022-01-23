@@ -4,7 +4,7 @@ import numpy as np
 
 # True  => single pendulum
 # False => double pendulum
-if True:  
+if False:  
 
     ## REPLAY BUFFER
     MINIBATCH_SIZE          = 64
@@ -35,16 +35,16 @@ if True:
 
 else:
     ## REPLAY BUFFER
-    MINIBATCH_SIZE          = 128
-    REPLAY_START_SIZE       = 256
+    MINIBATCH_SIZE          = 64
+    REPLAY_START_SIZE       = 512
     REPLAY_MEMORY_SIZE      = 100_000
-    REPLAY_SAMPLE_STEP      = 1
+    REPLAY_SAMPLE_STEP      = 3
 
     ## TRAINING
-    GAMMA                   = 0.95  
+    GAMMA                   = 0.999  
     N_EPISODES              = 10_000
     LEARNING_RATE           = 0.001
-    MAX_EPISODE_LENGTH      = 200                
+    MAX_EPISODE_LENGTH      = 300                
     NETWORK_RESET           = 5*MAX_EPISODE_LENGTH
 
     ## EPSILON-GREEDY
@@ -59,7 +59,7 @@ else:
     DT                      = 0.1
     NDT                     = 10
     NOISE                   = 0.
-    WITHSinCos              = True
+    WITHSinCos              = False
     
 
 ## VISUAL
