@@ -13,7 +13,7 @@ import math
 import csv
 import matplotlib.pyplot as plt
 
-FILENAME = "results/model/model_23553_11800.pth"
+FILENAME = "results/model/model_47042_8900.pth"
 
 model = CDPendulum(nbJoint=conf.N_JOINTS, 
                    nu=conf.NU, 
@@ -33,7 +33,7 @@ Q_function.load_state_dict(torch.load(FILENAME))
 s = model.reset(conf.X_0)
 model.render()
 time.sleep(1)
-for _ in np.arange(20*conf.NDT/conf.DT): # Simulate for 20 seconds
+for _ in np.arange(30*conf.NDT/conf.DT): # Simulate for 30 seconds
     model.render()
     a_int = Q_function(torch.tensor(s, dtype=torch.float32).view(1,-1)).max(-1)[1].item()
     a = model.decode_action(a_int)
@@ -93,4 +93,15 @@ plt.plot(ep, ctg)
 plt.title('Cost-to-go over episodes')
 plt.xlabel("Episode")
 plt.ylabel("Cost-to-go")
+plt.show()
+
+with open('results/csv/loss.csv', newline='') as csvfile:
+    reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+    loss = []
+    for row in reader:
+        loss.append(float(row[0]))
+plt.plot(np.arange(1, len(loss)), loss[1:])
+plt.title('Temporal difference error')
+plt.xlabel("Episode")
+plt.ylabel("e")
 plt.show()
