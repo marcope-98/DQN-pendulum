@@ -7,17 +7,17 @@ import numpy as np
 if True:  
 
     ## REPLAY BUFFER
-    MINIBATCH_SIZE          = 32
-    REPLAY_START_SIZE       = 1_000
+    MINIBATCH_SIZE          = 64
+    REPLAY_START_SIZE       = 128
     REPLAY_MEMORY_SIZE      = 50_000
-    REPLAY_SAMPLE_STEP      = 4
+    REPLAY_SAMPLE_STEP      = 1
 
     ## TRAINING
-    GAMMA                   = 0.9  
+    GAMMA                   = 0.95  
     N_EPISODES              = 10_000
     LEARNING_RATE           = 0.001
-    MAX_EPISODE_LENGTH      = 100                
-    NETWORK_RESET           = 100
+    MAX_EPISODE_LENGTH      = 150                
+    NETWORK_RESET           = 32
 
     ## EPSILON-GREEDY
     INITIAL_EXPLORATION     = 1.   
@@ -28,23 +28,23 @@ if True:
     N_JOINTS                = 1
     NU                      = 11
     UMAX                    = 5.0
-    DT                      = 0.2
-    NDT                     = 1
+    DT                      = 0.1
+    NDT                     = 10
     NOISE                   = 0.
     WITHSinCos              = False
 
 else:
     ## REPLAY BUFFER
-    MINIBATCH_SIZE          = 64
-    REPLAY_START_SIZE       = 5_000
+    MINIBATCH_SIZE          = 128
+    REPLAY_START_SIZE       = 256
     REPLAY_MEMORY_SIZE      = 100_000
-    REPLAY_SAMPLE_STEP      = 4
+    REPLAY_SAMPLE_STEP      = 1
 
     ## TRAINING
     GAMMA                   = 0.95  
     N_EPISODES              = 10_000
     LEARNING_RATE           = 0.001
-    MAX_EPISODE_LENGTH      = 150                
+    MAX_EPISODE_LENGTH      = 200                
     NETWORK_RESET           = 5*MAX_EPISODE_LENGTH
 
     ## EPSILON-GREEDY
@@ -57,7 +57,7 @@ else:
     NU                      = 21
     UMAX                    = 5.0
     DT                      = 0.1
-    NDT                     = 1
+    NDT                     = 10
     NOISE                   = 0.
     WITHSinCos              = True
     

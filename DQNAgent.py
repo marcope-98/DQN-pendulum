@@ -113,7 +113,7 @@ class DQNAgent():
             a = self.Q_target(s).max(-1)[1].view(1,1)
             s_next, _ = agent.step(a.item())
             s = s_next
-            time.sleep(conf.DT)
+            time.sleep(0.5*conf.DT) # Play at 2x speed
 
     def save_model(self, ctg):
         quant_ctg = ceil(ctg * 1000)
@@ -179,7 +179,7 @@ if __name__ == "__main__":
                 s = s_next
 
                 # Run model optimization step and track training loss
-                if len(agent.buffer) >= conf.REPLAY_START_SIZE and step % conf.REPLAY_SAMPLE_STEP:
+                if len(agent.buffer) >= conf.REPLAY_START_SIZE and step % conf.REPLAY_SAMPLE_STEP == 0:
                     l = agent.update()
                     episode_loss.append(l)                
 
