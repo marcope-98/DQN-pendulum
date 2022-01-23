@@ -165,7 +165,7 @@ if __name__ == "__main__":
         #Training loop
         while True:
             agent.episode += 1
-            episode_loss = []
+            episode_running_loss = 0
             # Reset pendulum and get initial state
             s = agent.reset()
             # Episode loop
@@ -180,7 +180,7 @@ if __name__ == "__main__":
                 # Run model optimization step and track training loss
                 if len(agent.buffer) >= conf.REPLAY_START_SIZE and step % conf.REPLAY_SAMPLE_STEP == 0:
                     l = agent.update()
-                    episode_loss.append(l)                
+                    episode_running_loss += l              
 
                 # Update target network weights
                 if (step % conf.NETWORK_RESET == 0):
@@ -190,7 +190,7 @@ if __name__ == "__main__":
             agent.epsilon_decay()
 
             # Track average training loss
-            agent.running_loss.append(np.mean(episode_loss))
+            agent.running_loss.append(episode_running_loss / conf.MAX_EPISODE_LENGTH)
 
             # Print track advancement
             if agent.episode % 100 == 0:
