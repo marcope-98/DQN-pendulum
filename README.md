@@ -104,4 +104,4 @@ $ python3 ./test.py
 
 ## Results
 
-![](https://github.com/marcope-98/03_assignment/blob/master/media/result.gif)
+![](https://github.com/marcope-98/DQN-pendulum/blob/master/media/result.gif)
