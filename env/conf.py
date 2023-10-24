@@ -59,7 +59,7 @@ else:
     DT                      = 0.1
     NDT                     = 10
     NOISE                   = 0.
-    WITHSinCos              = False
+    WITHSinCos              = True
     
 
 ## VISUAL

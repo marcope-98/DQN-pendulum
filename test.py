@@ -13,7 +13,7 @@ import math
 import csv
 import matplotlib.pyplot as plt
 
-FILENAME = "results/model/model_47042_8900.pth"
+FILENAME = "results/model/model_55021_4518.pth"
 
 model = CDPendulum(nbJoint=conf.N_JOINTS, 
                    nu=conf.NU, 

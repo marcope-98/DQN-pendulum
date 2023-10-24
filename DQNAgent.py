@@ -105,13 +105,13 @@ class DQNAgent():
 
     def display(self):
         print("Displaying progress")
-        s = agent.reset(conf.X_0)
-        agent.model.render()
+        s = self.reset(conf.X_0)
+        self.model.render()
         time.sleep(1)
         for _ in np.arange(conf.MAX_EPISODE_LENGTH):
-            agent.model.render()
+            self.model.render()
             a = self.Q_target(s).max(-1)[1].view(1,1)
-            s_next, _ = agent.step(a.item())
+            s_next, _ = self.step(a.item())
             s = s_next
             time.sleep(0.5*conf.DT) # Play at 2x speed
 
@@ -146,10 +146,10 @@ class DQNAgent():
         s = self.reset(conf.X_0)
         for t in np.arange(0, conf.MAX_EPISODE_LENGTH):
             a = self.Q_target(s).max(-1)[1].view(1,1)
-            s_next, r = agent.step(a.item())
+            s_next, r = self.step(a.item())
             ctg += gamma * r
             gamma *= conf.GAMMA
-            agent.buffer.push(s, a, r, s_next)
+            self.buffer.push(s, a, r, s_next)
             s = s_next
         if ctg > self.best_ctg:
             self.best_ctg = ctg
